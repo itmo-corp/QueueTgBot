@@ -1,0 +1,16 @@
+services:
+  bot:
+    image: queue-tg-bot:latest
+    build:
+      context: "."
+      dockerfile: Dockerfile
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - URL=http://api:1423/api/
+      - AUTHORITY_TOKEN=${AUTHORITY_TOKEN}
+    restart: always
+
+networks:
+  default:
+    name: queue-api-net
+    external: true

@@ -1,0 +1,18 @@
+services:
+  bot:
+    image: queue-tg-bot:debug
+    build:
+      context: "."
+      dockerfile: Dockerfile.debug
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN_DBG}
+      - URL=http://api:1423/api/
+      - AUTHORITY_TOKEN=${AUTHORITY_TOKEN}
+    restart: always
+    ports:
+      - 5678:5678
+
+networks:
+  default:
+    name: queue-api-net
+    external: true
