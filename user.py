@@ -17,19 +17,19 @@ class User:
         if self.jwt_token and self.jwt_token.expires > datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=10):
             return OperationResult(status=OperationStatus.Ok)
         result = login_to_api(UserLoginRequest(apiToken=self.api_token))
-        self.jwt_token = result.result
+        self.jwt_token = result.data
         return OperationResult(status=result.status)
 
     def post_json(self, url: str, json: Any) -> OperationResult[Response]:
         res = self.login()
         if res.status != OperationStatus.Ok:
             return res
-        return OperationResult(status=OperationStatus.Ok, result=requests.post(
+        return OperationResult(status=OperationStatus.Ok, data=requests.post(
             url, json=json, headers={"Authorization": f"Bearer {self.jwt_token.token}"}))
 
     def get(self, url: str) -> OperationResult[Response]:
         res = self.login()
         if res.status != OperationStatus.Ok:
             return res
-        return OperationResult(status=OperationStatus.Ok, result=requests.get(
+        return OperationResult(status=OperationStatus.Ok, data=requests.get(
             url, headers={"Authorization": f"Bearer {self.jwt_token.token}"}))

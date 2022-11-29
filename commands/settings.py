@@ -23,12 +23,20 @@ async def entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     res = user_api.get_name(user)
 
-    user_name = res.result
+    user_name = res.data
 
     if res.status != OperationStatus.Ok:
         user_name = f"ошибка: {res.status.name}"
+    
+    res = user_api.get_id(user)
+
+    user_id = res.data
+
+    if res.status != OperationStatus.Ok:
+        user_id = f"ошибка: {res.status.name}"
 
     text = ("🛠 Настройки 🛠\n" +
+            f"ваш id: {user_id}\n" +
             f"ваше имя сейчас: {user_name}"
             )
 

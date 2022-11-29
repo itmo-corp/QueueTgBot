@@ -8,6 +8,7 @@ from models import OperationStatus
 import re
 from commands import conversation_keys
 from utils.users import get_user
+from commands.conv_utils import confirm_gen, confirm_callback_handler
 
 
 # states
@@ -38,7 +39,7 @@ async def entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return
 
-    queues_names = res.result
+    queues_names = res.data
 
     if len(queues_names) > 32:
         queues_names = queues_names[:32]
@@ -74,7 +75,7 @@ async def select_queue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return await entry(update, context)
 
-    queue_id = res.result
+    queue_id = res.data
 
     context.user_data[SELECTED_QUEUE_FIELD] = queue_id
 
@@ -94,7 +95,7 @@ async def select_queue_by_num(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return await entry(update, context)
 
-    queue_id = res.result[int(queue_num) - 1]
+    queue_id = res.data[int(queue_num) - 1]
 
     context.user_data[SELECTED_QUEUE_FIELD] = queue_id
 
@@ -111,7 +112,7 @@ async def list_selected_queue(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return await entry(update, context)
 
-    queue = res.result
+    queue = res.data
 
     text = (
         f"Вы выбрали очередь {queue.name}:\n" +
@@ -141,7 +142,7 @@ async def join_queue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return IN_QUEUE
 
-    if res.result:
+    if res.data:
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Вы уже в очереди")
         return IN_QUEUE
 
@@ -332,7 +333,7 @@ async def get_known_queues(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if res.status != OperationStatus.Ok:
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="ваши очереди:\n{}".format('\n'.join(res.result)))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="ваши очереди:\n{}".format('\n'.join(res.data)))
 
 
 async def get_queue_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -347,7 +348,7 @@ async def get_queue_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if res.status != OperationStatus.Ok:
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"имя очереди: {res.result}")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"имя очереди: {res.data}")
 
 
 async def get_queue_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -364,8 +365,8 @@ async def get_queue_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await context.bot.send_message(chat_id=update.effective_chat.id,
                                    text="очередь {}:\n{}".format(
-                                       res.result.name, '\n'.join(f'{i + 1}: {res.result.members[i].displayName} - {"готов" if res.result.members[i].isReady else "не готов"}'
-                                                                  for i in range(len(res.result.members)))))
+                                       res.data.name, '\n'.join(f'{i + 1}: {res.data.members[i].displayName} - {"готов" if res.data.members[i].isReady else "не готов"}'
+                                                                  for i in range(len(res.data.members)))))
 
 
 entry_text = "Очереди"
@@ -389,11 +390,14 @@ conv_handler = ConversationHandler(
         ],
         IN_QUEUE: [
             MessageHandler(filters.Regex(f"^{join_queue_btn}$"), join_queue),
-            MessageHandler(filters.Regex(f"^{join_queue_owerwrite_btn}$"), join_queue_overwrite),
-            MessageHandler(filters.Regex(f"^{leave_queue_btn}$"), leave_queue),
+            MessageHandler(filters.Regex(f"^{join_queue_owerwrite_btn}$"), confirm_gen(join_queue_overwrite, list_selected_queue)),
+            MessageHandler(filters.Regex(f"^{leave_queue_btn}$"), confirm_gen(leave_queue, list_selected_queue)),
             MessageHandler(filters.Regex(f"^{refresh_queue_btn}$"), list_selected_queue),
             MessageHandler(filters.Regex(f"^{ready_queue_btn}$"), ready_queue),
             MessageHandler(filters.Regex(f"^{unready_queue_btn}$"), unready_queue),
+        ],
+        conversation_keys.CONFIRMING: [
+            confirm_callback_handler
         ]
     },
     fallbacks=[
@@ -402,5 +406,6 @@ conv_handler = ConversationHandler(
     ],
     map_to_parent={
         conversation_keys.END: conversation_keys.DEFAULT,
+        conversation_keys.RESTART: conversation_keys.DEFAULT,
     }
 )

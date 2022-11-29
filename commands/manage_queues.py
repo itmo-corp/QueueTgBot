@@ -8,6 +8,7 @@ from models import OperationStatus
 import re
 from commands import conversation_keys
 from utils.users import get_user
+import commands.admin_panel as admin_panel_commands
 
 
 # states
@@ -32,20 +33,10 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = get_user(update.message.from_user)
-
-    res = queue_api.get_known_queues_names(user)
-
-    if res.status != OperationStatus.Ok:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
-        return
-
-    queues_names = res.result
-
     text = ("Тут вы можете управлять своими очередями")
 
     keyboard = [
-        [KeyboardButton(back_btn), KeyboardButton(forget_queue_btn)],
+        [KeyboardButton(back_btn), KeyboardButton(forget_queue_btn), KeyboardButton(admin_panel_commands.entry_text)],
         [KeyboardButton(add_queue_btn), KeyboardButton(create_queue_btn)],
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -168,7 +159,7 @@ async def forget_queue_entry(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return
 
-    queues_names = res.result
+    queues_names = res.data
 
     if len(queues_names) > 32:
         queues_names = queues_names[:32]
@@ -204,7 +195,7 @@ async def forget_queue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return await entry(update, context)
 
-    queue_id = res.result
+    queue_id = res.data
 
     res = queue_api.forget(user, queue_id)
 
@@ -230,7 +221,7 @@ async def forget_queue_by_num(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return await entry(update, context)
 
-    queue_id = res.result[int(queue_num) - 1]
+    queue_id = res.data[int(queue_num) - 1]
 
     res = queue_api.forget(user, queue_id)
 
@@ -248,7 +239,7 @@ parent_handler = None
 
 back_to_entry_btn = "Отмена"
 back_btn = "В главное меню"
-add_queue_btn = "Добавить очередь"
+add_queue_btn = "Вступить в очередь"
 create_queue_btn = "Создать очередь"
 forget_queue_btn = "Забыть очередь"
 
@@ -256,6 +247,9 @@ forget_queue_btn = "Забыть очередь"
 cancel_kbd = [[KeyboardButton(back_to_entry_btn)]]
 cancel_kbd_markup = ReplyKeyboardMarkup(cancel_kbd, resize_keyboard=True)
 
+
+admin_panel_commands.parent_handler = entry
+admin_panel_commands.parent_reset_handler = back
 
 conv_handler = ConversationHandler(
     entry_points=[MessageHandler(filters.Regex(f"^{entry_text}$"), entry)],
@@ -267,6 +261,7 @@ conv_handler = ConversationHandler(
                 f"^{create_queue_btn}$"), create_queue_entry),
             MessageHandler(filters.Regex(
                 f"^{forget_queue_btn}$"), forget_queue_entry),
+            admin_panel_commands.conv_handler,
         ],
         ADD_QUEUE_ENTERING_NAME: [
             MessageHandler(filters.Regex(f"^{back_to_entry_btn}$"), entry),
@@ -291,5 +286,6 @@ conv_handler = ConversationHandler(
     ],
     map_to_parent={
         conversation_keys.END: conversation_keys.DEFAULT,
+        conversation_keys.RESTART: conversation_keys.DEFAULT,
     }
 )

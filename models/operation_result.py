@@ -6,21 +6,21 @@ T = TypeVar("T")
 
 
 class OperationResult(Generic[T]):
-    def __init__(self, status: OperationStatus, result: T = None) -> None:
+    def __init__(self, status: OperationStatus, data: T = None) -> None:
         self.status = status
-        self.result = result
+        self.data = data
 
     @staticmethod
     def from_json(json: dict, type: Type[T] = None) -> OperationResult[T]:
-        if (type == None or json["result"] == None):
+        if (type == None or json["data"] == None):
             return OperationResult(status=OperationStatus(json["status"]))
         if (not hasattr(type, "Schema")):
             if (json["status"] is dict):
-                return OperationResult(status=OperationStatus(json["status"]), result=type(**json["result"]))
-            return OperationResult(status=OperationStatus(json["status"]), result=type(json["result"]))
+                return OperationResult(status=OperationStatus(json["status"]), data=type(**json["data"]))
+            return OperationResult(status=OperationStatus(json["status"]), data=type(json["data"]))
         return OperationResult[T](
             status=OperationStatus(json["status"]),
-            result=type.Schema().load(json["result"]))
+            data=type.Schema().load(json["data"]))
 
 
 class OperationStatus(Enum):

@@ -22,7 +22,7 @@ async def new_api_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if res.status != OperationStatus.Ok:
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"новый токен: {res.result}")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"новый токен: {res.data}")
 
 
 async def list_api_tokens(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -31,7 +31,7 @@ async def list_api_tokens(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if res.status != OperationStatus.Ok:
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"ошибка: {res.status.name}")
         return
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="ваши токены:\n{}".format('\n'.join(res.result)))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="ваши токены:\n{}".format('\n'.join(res.data)))
 
 
 async def delete_api_token(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -12,7 +12,7 @@ def get_name(user: User) -> OperationResult[str]:
         BASE_URL + "getDisplayName")
     if (result.status != OperationStatus.Ok):
         return result
-    return OperationResult.from_json(result.result.json(), str)
+    return OperationResult.from_json(result.data.json(), str)
 
 
 def set_name(user: User, request: str) -> OperationResult:
@@ -20,5 +20,12 @@ def set_name(user: User, request: str) -> OperationResult:
         BASE_URL + "setDisplayName", json=request)
     if (result.status != OperationStatus.Ok):
         return result
-    return OperationResult.from_json(result.result.json())
+    return OperationResult.from_json(result.data.json())
 
+
+def get_id(user: User) -> OperationResult[str]:
+    result = user.get(
+        BASE_URL + "getId")
+    if (result.status != OperationStatus.Ok):
+        return result
+    return OperationResult.from_json(result.data.json(), str)
